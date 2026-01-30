@@ -3,8 +3,8 @@ import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
 import { wallets, walletsFromEnv } from '@lucid-agents/wallet';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
-import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity';
-import { mainnet } from 'viem/chains';
+// import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity'; // Disabled - pending SDK fix
+// import { mainnet } from 'viem/chains';
 import { z } from 'zod';
 
 process.stderr.write('🚀 F1 Agent starting...\\n');
@@ -20,7 +20,7 @@ const agent = await createAgent({
   .use(http())
   .use(wallets({ config: walletsFromEnv() }))
   .use(payments({ config: paymentsFromEnv() }))
-  .use(identity({ config: identityFromEnv() }))
+  // .use(identity({ config: identityFromEnv() })) // Disabled - pending SDK fix for mainnet gas estimation
   .build();
 
 console.log('✅ Agent built successfully');
@@ -36,25 +36,11 @@ console.log('  IDENTITY_AUTO_REGISTER:', process.env.IDENTITY_AUTO_REGISTER);
 console.log('  AGENT_DOMAIN:', process.env.AGENT_DOMAIN);
 console.log('  RPC_URL:', process.env.RPC_URL?.slice(0, 50) + '...');
 
-if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGISTER === 'true') {
-  process.stderr.write('🪪 Attempting identity registration on Ethereum mainnet...\\n');
-  try {
-    const identityResult = await createAgentIdentity({
-      runtime: agent,
-      domain: process.env.AGENT_DOMAIN,
-      autoRegister: true,
-      rpcUrl: process.env.RPC_URL,
-      chainId: 1, // Ethereum mainnet
-      chain: mainnet, // Viem chain config for proper fee estimation
-    });
-    process.stderr.write(`✅ Identity registered: ${identityResult.agentId}\\n`);
-  } catch (err: any) {
-    process.stderr.write(`❌ Failed to register identity: ${err?.message || err}\\n`);
-    process.stderr.write(`Stack: ${err?.stack}\\n`);
-  }
-} else {
-  process.stderr.write('⏭️ Skipping identity registration (env vars not set)\\n');
-}
+// TODO: Identity registration disabled - waiting for @lucid-agents/wallet SDK fix
+// Issue: viem wallet client doesn't include proper fee config for Ethereum mainnet
+// Error: "Cannot infer a transaction type from provided transaction" - needs maxFeePerGas
+// Registry: 0x8004A169FB4a3325136EB29fA0ceB6D2e539a432 (Ethereum mainnet, chain 1)
+console.log('⏭️ Identity registration disabled (pending SDK fix for mainnet gas estimation)');
 
 // === HELPER: Fetch JSON from Ergast API ===
 async function fetchF1(path: string) {
