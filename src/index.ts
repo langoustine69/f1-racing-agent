@@ -3,7 +3,7 @@ import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
 import { wallets, walletsFromEnv } from '@lucid-agents/wallet';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
-import { identity, identityFromEnv } from '@lucid-agents/identity';
+import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity';
 import { z } from 'zod';
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
@@ -21,6 +21,20 @@ const agent = await createAgent({
   .build();
 
 const { app, addEntrypoint } = await createAgentApp(agent);
+
+// Register identity on chain if REGISTER_IDENTITY=true
+if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGISTER === 'true') {
+  try {
+    const identityResult = await createAgentIdentity({
+      runtime: agent,
+      domain: process.env.AGENT_DOMAIN,
+      autoRegister: true,
+    });
+    console.log('🪪 Identity registered:', identityResult.agentId);
+  } catch (err) {
+    console.error('Failed to register identity:', err);
+  }
+}
 
 // === HELPER: Fetch JSON from Ergast API ===
 async function fetchF1(path: string) {
