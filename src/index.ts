@@ -2,32 +2,11 @@ import { createAgent } from '@lucid-agents/core';
 import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
+import { identity } from '@lucid-agents/identity';
 import { z } from 'zod';
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
-const LATEST_COMPLETE_SEASON = '2025'; // Season with complete standings
-
-// ERC-8004 Agent Metadata
-const AGENT_METADATA = {
-  type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
-  name: 'F1 Racing Agent',
-  description: 'Real-time Formula 1 racing data - schedules, standings, drivers, circuits, and race results via x402 micropayments.',
-  services: [
-    { name: 'x402', endpoint: 'https://f1-racing-agent-production.up.railway.app' },
-    { name: 'github', endpoint: 'https://github.com/langoustine69/f1-racing-agent' },
-  ],
-  capabilities: [
-    { name: 'overview', description: 'Free F1 season overview' },
-    { name: 'driver', description: 'Driver lookup by ID' },
-    { name: 'standings', description: 'Full championship standings' },
-    { name: 'schedule', description: 'Race schedule with sessions' },
-    { name: 'results', description: 'Detailed race results' },
-    { name: 'report', description: 'Comprehensive F1 report' },
-  ],
-  active: true,
-  registeredOn: 'ethereum:1',
-  wallet: '0x0C3D21e8835990427405F6FeA649f1fb8CB30ED6',
-};
+const LATEST_COMPLETE_SEASON = '2025';
 
 const agent = await createAgent({
   name: 'f1-racing-agent',
@@ -36,21 +15,15 @@ const agent = await createAgent({
 })
   .use(http())
   .use(payments({ config: paymentsFromEnv() }))
+  .use(identity({ 
+    config: { 
+      domain: 'f1-racing-agent-production.up.railway.app',
+      autoRegister: false,
+    } 
+  }))
   .build();
 
 const { app, addEntrypoint } = await createAgentApp(agent);
-
-// Serve ERC-8004 metadata (must be added after createAgentApp but works with Hono)
-app.get('/.well-known/agent-metadata.json', (c) => {
-  c.header('Content-Type', 'application/json');
-  return c.json(AGENT_METADATA);
-});
-
-// Also add at /agent-metadata.json as fallback
-app.get('/agent-metadata.json', (c) => {
-  c.header('Content-Type', 'application/json');
-  return c.json(AGENT_METADATA);
-});
 
 // === HELPER: Fetch JSON from Ergast API ===
 async function fetchF1(path: string) {
@@ -124,7 +97,6 @@ addEntrypoint({
       return { output: { error: 'Driver not found', driverId: ctx.input.driverId } };
     }
 
-    // Get latest season results for this driver
     const resultsData = await fetchF1(`/${LATEST_COMPLETE_SEASON}/drivers/${ctx.input.driverId}/results.json`);
     const races = resultsData.MRData.RaceTable.Races || [];
 
@@ -160,7 +132,7 @@ addEntrypoint({
   key: 'standings',
   description: 'Full driver and constructor standings for specified season',
   input: z.object({
-    season: z.string().optional().default(LATEST_COMPLETE_SEASON).describe('Season year (e.g., 2025, 2024)'),
+    season: z.string().optional().default(LATEST_COMPLETE_SEASON),
     type: z.enum(['drivers', 'constructors', 'both']).optional().default('both'),
   }),
   price: { amount: 2000 },
@@ -202,8 +174,8 @@ addEntrypoint({
   key: 'schedule',
   description: 'F1 race schedule with dates, circuits, and session times',
   input: z.object({
-    season: z.string().optional().default('current').describe('Season year or "current" for upcoming'),
-    upcoming: z.boolean().optional().default(false).describe('Only show upcoming races'),
+    season: z.string().optional().default('current'),
+    upcoming: z.boolean().optional().default(false),
   }),
   price: { amount: 2000 },
   handler: async (ctx) => {
@@ -227,13 +199,6 @@ addEntrypoint({
           location: `${r.Circuit.Location.locality}, ${r.Circuit.Location.country}`,
           date: r.date,
           time: r.time,
-          sessions: {
-            practice1: r.FirstPractice ? `${r.FirstPractice.date} ${r.FirstPractice.time}` : null,
-            practice2: r.SecondPractice ? `${r.SecondPractice.date} ${r.SecondPractice.time}` : null,
-            practice3: r.ThirdPractice ? `${r.ThirdPractice.date} ${r.ThirdPractice.time}` : null,
-            qualifying: r.Qualifying ? `${r.Qualifying.date} ${r.Qualifying.time}` : null,
-            sprint: r.Sprint ? `${r.Sprint.date} ${r.Sprint.time}` : null,
-          },
         })),
         fetchedAt: new Date().toISOString(),
       },
@@ -246,8 +211,8 @@ addEntrypoint({
   key: 'results',
   description: 'Detailed race results with positions, times, and lap data',
   input: z.object({
-    season: z.string().optional().default(LATEST_COMPLETE_SEASON).describe('Season year'),
-    round: z.string().optional().default('last').describe('Round number or "last"'),
+    season: z.string().optional().default(LATEST_COMPLETE_SEASON),
+    round: z.string().optional().default('last'),
   }),
   price: { amount: 3000 },
   handler: async (ctx) => {
@@ -266,7 +231,6 @@ addEntrypoint({
           name: race.raceName,
           circuit: race.Circuit.circuitName,
           date: race.date,
-          wikipedia: race.url,
         },
         results: race.Results.map((r: any) => ({
           position: parseInt(r.position),
@@ -277,13 +241,6 @@ addEntrypoint({
           time: r.Time?.time || r.status,
           status: r.status,
           points: parseFloat(r.points),
-          grid: parseInt(r.grid),
-          fastestLap: r.FastestLap ? {
-            rank: r.FastestLap.rank,
-            lap: r.FastestLap.lap,
-            time: r.FastestLap.Time?.time,
-            avgSpeed: r.FastestLap.AverageSpeed?.speed,
-          } : null,
         })),
         fetchedAt: new Date().toISOString(),
       },
@@ -314,43 +271,31 @@ addEntrypoint({
 
     return {
       output: {
-        upcomingSeason: scheduleData.MRData.RaceTable.season,
-        championshipSeason: LATEST_COMPLETE_SEASON,
         championship: {
           drivers: driverStandings.slice(0, 10).map((d: any) => ({
             pos: d.position,
             name: `${d.Driver.givenName} ${d.Driver.familyName}`,
             team: d.Constructors[0]?.name,
             pts: d.points,
-            wins: d.wins,
           })),
           constructors: constructorStandings.map((c: any) => ({
             pos: c.position,
             team: c.Constructor.name,
             pts: c.points,
-            wins: c.wins,
           })),
         },
         lastRace: lastRace ? {
           name: lastRace.raceName,
-          date: lastRace.date,
-          circuit: lastRace.Circuit.circuitName,
           podium: lastRace.Results.slice(0, 3).map((r: any) => ({
             pos: r.position,
             driver: `${r.Driver.givenName} ${r.Driver.familyName}`,
-            team: r.Constructor.name,
-            time: r.Time?.time || r.status,
           })),
         } : null,
         upcomingRaces: upcomingRaces.map((r: any) => ({
-          round: r.round,
           name: r.raceName,
-          circuit: r.Circuit.circuitName,
-          location: `${r.Circuit.Location.locality}, ${r.Circuit.Location.country}`,
           date: r.date,
         })),
         fetchedAt: new Date().toISOString(),
-        dataSource: 'Jolpica Ergast F1 API',
       },
     };
   },
