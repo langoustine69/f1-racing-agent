@@ -18,7 +18,7 @@ const agent = await createAgent({
   .use(identity({ 
     config: { 
       domain: 'f1-racing-agent-production.up.railway.app',
-      autoRegister: false,
+      autoRegister: true,
     } 
   }))
   .build();
