@@ -40,8 +40,15 @@ const agent = await createAgent({
 
 const { app, addEntrypoint } = await createAgentApp(agent);
 
-// Serve ERC-8004 metadata
+// Serve ERC-8004 metadata (must be added after createAgentApp but works with Hono)
 app.get('/.well-known/agent-metadata.json', (c) => {
+  c.header('Content-Type', 'application/json');
+  return c.json(AGENT_METADATA);
+});
+
+// Also add at /agent-metadata.json as fallback
+app.get('/agent-metadata.json', (c) => {
+  c.header('Content-Type', 'application/json');
   return c.json(AGENT_METADATA);
 });
 
