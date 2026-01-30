@@ -2,10 +2,17 @@ import { createAgent } from '@lucid-agents/core';
 import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
+import { createAgentIdentity, getTrustConfig } from '@lucid-agents/identity';
 import { z } from 'zod';
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
 const LATEST_COMPLETE_SEASON = '2025'; // Season with complete standings
+
+// Initialize ERC-8004 identity
+const identity = await createAgentIdentity({
+  domain: 'f1-racing-agent-production.up.railway.app',
+  autoRegister: false, // Already registered
+});
 
 const agent = await createAgent({
   name: 'f1-racing-agent',
@@ -16,7 +23,9 @@ const agent = await createAgent({
   .use(payments({ config: paymentsFromEnv() }))
   .build();
 
-const { app, addEntrypoint } = await createAgentApp(agent);
+const { app, addEntrypoint } = await createAgentApp(agent, {
+  trust: getTrustConfig(identity),
+});
 
 // === HELPER: Fetch JSON from Ergast API ===
 async function fetchF1(path: string) {
