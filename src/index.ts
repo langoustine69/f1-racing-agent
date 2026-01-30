@@ -22,18 +22,28 @@ const agent = await createAgent({
 
 const { app, addEntrypoint } = await createAgentApp(agent);
 
-// Register identity on chain if REGISTER_IDENTITY=true
+// Register identity on chain
+console.log('🔍 Checking identity registration...');
+console.log('  REGISTER_IDENTITY:', process.env.REGISTER_IDENTITY);
+console.log('  IDENTITY_AUTO_REGISTER:', process.env.IDENTITY_AUTO_REGISTER);
+console.log('  AGENT_DOMAIN:', process.env.AGENT_DOMAIN);
+console.log('  RPC_URL:', process.env.RPC_URL?.slice(0, 50) + '...');
+
 if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGISTER === 'true') {
+  console.log('🪪 Attempting identity registration...');
   try {
     const identityResult = await createAgentIdentity({
       runtime: agent,
       domain: process.env.AGENT_DOMAIN,
       autoRegister: true,
     });
-    console.log('🪪 Identity registered:', identityResult.agentId);
-  } catch (err) {
-    console.error('Failed to register identity:', err);
+    console.log('✅ Identity registered:', identityResult.agentId);
+  } catch (err: any) {
+    console.error('❌ Failed to register identity:', err?.message || err);
+    console.error('Stack:', err?.stack);
   }
+} else {
+  console.log('⏭️ Skipping identity registration (env vars not set)');
 }
 
 // === HELPER: Fetch JSON from Ergast API ===
