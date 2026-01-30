@@ -42,6 +42,8 @@ if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGIST
       runtime: agent,
       domain: process.env.AGENT_DOMAIN,
       autoRegister: true,
+      rpcUrl: process.env.RPC_URL,
+      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 1,
     });
     process.stderr.write(`✅ Identity registered: ${identityResult.agentId}\\n`);
   } catch (err: any) {
