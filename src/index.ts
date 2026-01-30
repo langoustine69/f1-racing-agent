@@ -6,6 +6,8 @@ import { payments, paymentsFromEnv } from '@lucid-agents/payments';
 import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity';
 import { z } from 'zod';
 
+console.log('🚀 F1 Agent starting...');
+
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
 const LATEST_COMPLETE_SEASON = '2025';
 
@@ -20,7 +22,11 @@ const agent = await createAgent({
   .use(identity({ config: identityFromEnv() }))
   .build();
 
+console.log('✅ Agent built successfully');
+
 const { app, addEntrypoint } = await createAgentApp(agent);
+
+console.log('✅ Agent app created');
 
 // Register identity on chain
 console.log('🔍 Checking identity registration...');
