@@ -4,6 +4,7 @@ import { createAgentApp } from '@lucid-agents/hono';
 import { wallets, walletsFromEnv } from '@lucid-agents/wallet';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
 import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity';
+import { mainnet } from 'viem/chains';
 import { z } from 'zod';
 
 process.stderr.write('🚀 F1 Agent starting...\\n');
@@ -36,14 +37,15 @@ console.log('  AGENT_DOMAIN:', process.env.AGENT_DOMAIN);
 console.log('  RPC_URL:', process.env.RPC_URL?.slice(0, 50) + '...');
 
 if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGISTER === 'true') {
-  process.stderr.write('🪪 Attempting identity registration...\\n');
+  process.stderr.write('🪪 Attempting identity registration on Ethereum mainnet...\\n');
   try {
     const identityResult = await createAgentIdentity({
       runtime: agent,
       domain: process.env.AGENT_DOMAIN,
       autoRegister: true,
       rpcUrl: process.env.RPC_URL,
-      chainId: process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 1,
+      chainId: 1, // Ethereum mainnet
+      chain: mainnet, // Viem chain config for proper fee estimation
     });
     process.stderr.write(`✅ Identity registered: ${identityResult.agentId}\\n`);
   } catch (err: any) {
