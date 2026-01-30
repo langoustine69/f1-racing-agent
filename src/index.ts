@@ -6,7 +6,7 @@ import { payments, paymentsFromEnv } from '@lucid-agents/payments';
 import { identity, identityFromEnv, createAgentIdentity } from '@lucid-agents/identity';
 import { z } from 'zod';
 
-console.log('🚀 F1 Agent starting...');
+process.stderr.write('🚀 F1 Agent starting...\\n');
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
 const LATEST_COMPLETE_SEASON = '2025';
@@ -36,20 +36,20 @@ console.log('  AGENT_DOMAIN:', process.env.AGENT_DOMAIN);
 console.log('  RPC_URL:', process.env.RPC_URL?.slice(0, 50) + '...');
 
 if (process.env.REGISTER_IDENTITY === 'true' || process.env.IDENTITY_AUTO_REGISTER === 'true') {
-  console.log('🪪 Attempting identity registration...');
+  process.stderr.write('🪪 Attempting identity registration...\\n');
   try {
     const identityResult = await createAgentIdentity({
       runtime: agent,
       domain: process.env.AGENT_DOMAIN,
       autoRegister: true,
     });
-    console.log('✅ Identity registered:', identityResult.agentId);
+    process.stderr.write(`✅ Identity registered: ${identityResult.agentId}\\n`);
   } catch (err: any) {
-    console.error('❌ Failed to register identity:', err?.message || err);
-    console.error('Stack:', err?.stack);
+    process.stderr.write(`❌ Failed to register identity: ${err?.message || err}\\n`);
+    process.stderr.write(`Stack: ${err?.stack}\\n`);
   }
 } else {
-  console.log('⏭️ Skipping identity registration (env vars not set)');
+  process.stderr.write('⏭️ Skipping identity registration (env vars not set)\\n');
 }
 
 // === HELPER: Fetch JSON from Ergast API ===
