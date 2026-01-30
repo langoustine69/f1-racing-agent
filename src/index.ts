@@ -2,17 +2,32 @@ import { createAgent } from '@lucid-agents/core';
 import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
-import { createAgentIdentity, getTrustConfig } from '@lucid-agents/identity';
 import { z } from 'zod';
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
 const LATEST_COMPLETE_SEASON = '2025'; // Season with complete standings
 
-// Initialize ERC-8004 identity
-const identity = await createAgentIdentity({
-  domain: 'f1-racing-agent-production.up.railway.app',
-  autoRegister: false, // Already registered
-});
+// ERC-8004 Agent Metadata
+const AGENT_METADATA = {
+  type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
+  name: 'F1 Racing Agent',
+  description: 'Real-time Formula 1 racing data - schedules, standings, drivers, circuits, and race results via x402 micropayments.',
+  services: [
+    { name: 'x402', endpoint: 'https://f1-racing-agent-production.up.railway.app' },
+    { name: 'github', endpoint: 'https://github.com/langoustine69/f1-racing-agent' },
+  ],
+  capabilities: [
+    { name: 'overview', description: 'Free F1 season overview' },
+    { name: 'driver', description: 'Driver lookup by ID' },
+    { name: 'standings', description: 'Full championship standings' },
+    { name: 'schedule', description: 'Race schedule with sessions' },
+    { name: 'results', description: 'Detailed race results' },
+    { name: 'report', description: 'Comprehensive F1 report' },
+  ],
+  active: true,
+  registeredOn: 'ethereum:1',
+  wallet: '0x0C3D21e8835990427405F6FeA649f1fb8CB30ED6',
+};
 
 const agent = await createAgent({
   name: 'f1-racing-agent',
@@ -23,8 +38,11 @@ const agent = await createAgent({
   .use(payments({ config: paymentsFromEnv() }))
   .build();
 
-const { app, addEntrypoint } = await createAgentApp(agent, {
-  trust: getTrustConfig(identity),
+const { app, addEntrypoint } = await createAgentApp(agent);
+
+// Serve ERC-8004 metadata
+app.get('/.well-known/agent-metadata.json', (c) => {
+  return c.json(AGENT_METADATA);
 });
 
 // === HELPER: Fetch JSON from Ergast API ===
