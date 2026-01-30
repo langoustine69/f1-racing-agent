@@ -1,8 +1,9 @@
 import { createAgent } from '@lucid-agents/core';
 import { http } from '@lucid-agents/http';
 import { createAgentApp } from '@lucid-agents/hono';
+import { wallets, walletsFromEnv } from '@lucid-agents/wallet';
 import { payments, paymentsFromEnv } from '@lucid-agents/payments';
-import { identity } from '@lucid-agents/identity';
+import { identity, identityFromEnv } from '@lucid-agents/identity';
 import { z } from 'zod';
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
@@ -14,13 +15,9 @@ const agent = await createAgent({
   description: 'Real-time Formula 1 racing data - schedules, standings, drivers, circuits, and race results. Powered by live F1 data.',
 })
   .use(http())
+  .use(wallets({ config: walletsFromEnv() }))
   .use(payments({ config: paymentsFromEnv() }))
-  .use(identity({ 
-    config: { 
-      domain: 'f1-racing-agent-production.up.railway.app',
-      autoRegister: true,
-    } 
-  }))
+  .use(identity({ config: identityFromEnv() }))
   .build();
 
 const { app, addEntrypoint } = await createAgentApp(agent);

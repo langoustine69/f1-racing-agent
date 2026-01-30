@@ -10,9 +10,11 @@
     "@lucid-agents/core": "latest",
     "@lucid-agents/http": "latest",
     "@lucid-agents/hono": "latest",
+    "@lucid-agents/wallet": "latest",
     "@lucid-agents/payments": "latest",
     "@lucid-agents/identity": "latest",
     "hono": "^4.0.0",
+    "viem": "^2.0.0",
     "zod": "^4.0.0"
   }
 }
